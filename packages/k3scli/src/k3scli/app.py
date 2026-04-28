@@ -298,7 +298,7 @@ def apply(
         if not typer.confirm(f"High-risk actions detected ({descriptions}). Proceed?"):
             raise typer.Abort()
 
-    executor = SshExecutor(connection)
+    executor = SshExecutor(connection, on_output=lambda line: console.print(f"  [dim]{line}[/]"))
     actions, skipped = build_actions(desired, generated_plan, executor)
 
     if skipped:
@@ -307,7 +307,7 @@ def apply(
 
     journal_path = Path(desired.spec.execution.journal.path)
     journal = Journal(journal_path, keep=desired.spec.execution.journal.keep)
-    runner = Runner(journal)
+    runner = Runner(journal, on_progress=lambda _id, msg: console.print(f"[dim]{msg}[/]"))
     result = runner.run(target, actions)
 
     if result.success:

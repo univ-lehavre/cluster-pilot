@@ -19,7 +19,7 @@ class FakeExecutor:
         self.results: dict[str, CommandResult] = results or {}
         self.calls: list[str] = []
 
-    def run(self, command: str) -> CommandResult:
+    def run(self, command: str, stream: bool = False) -> CommandResult:
         self.calls.append(command)
         return self.results.get(command, CommandResult(command, "", "", 0))
 

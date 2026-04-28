@@ -33,7 +33,8 @@ class EnsurePackagePresent(Action):
 
     def apply(self) -> None:
         self._executor.run(
-            f"DEBIAN_FRONTEND=noninteractive apt-get install -y {shlex.quote(self._package)}"
+            f"DEBIAN_FRONTEND=noninteractive apt-get install -y {shlex.quote(self._package)}",
+            stream=True,
         )
 
     def verify(self) -> bool:
@@ -72,7 +73,8 @@ class WriteRemoteFile(Action):
         content_b64 = base64.b64encode(self._content.encode()).decode()
         self._executor.run(
             f"mkdir -p {shlex.quote(str(PurePosixPath(self._path).parent))}"
-            f" && echo {shlex.quote(content_b64)} | base64 -d > {shlex.quote(self._path)}"
+            f" && echo {shlex.quote(content_b64)} | base64 -d > {shlex.quote(self._path)}",
+            stream=True,
         )
 
     def verify(self) -> bool:
@@ -115,7 +117,7 @@ class SetSysctlValue(Action):
         return self._current_value()
 
     def apply(self) -> None:
-        self._executor.run(f"sysctl -w {shlex.quote(self._key + '=' + self._value)}")
+        self._executor.run(f"sysctl -w {shlex.quote(self._key + '=' + self._value)}", stream=True)
 
     def verify(self) -> bool:
         return self._current_value() == self._value
@@ -162,7 +164,7 @@ class InstallK3s(Action):
             env = f"INSTALL_K3S_VERSION={shlex.quote(self._version)}"
         else:
             env = f"INSTALL_K3S_CHANNEL={shlex.quote(self._channel)}"
-        self._executor.run(f"curl -sfL https://get.k3s.io | {env} sh -")
+        self._executor.run(f"curl -sfL https://get.k3s.io | {env} sh -", stream=True)
 
     def verify(self) -> bool:
         return self._executor.run("command -v k3s").ok
@@ -196,7 +198,7 @@ class SystemdServiceEnable(Action):
         return self._is_enabled()
 
     def apply(self) -> None:
-        self._executor.run(f"systemctl enable {shlex.quote(self._service)}")
+        self._executor.run(f"systemctl enable {shlex.quote(self._service)}", stream=True)
 
     def verify(self) -> bool:
         return self._is_enabled()
@@ -230,7 +232,7 @@ class SystemdServiceStart(Action):
         return self._is_active()
 
     def apply(self) -> None:
-        self._executor.run(f"systemctl start {shlex.quote(self._service)}")
+        self._executor.run(f"systemctl start {shlex.quote(self._service)}", stream=True)
 
     def verify(self) -> bool:
         return self._is_active()
@@ -262,7 +264,8 @@ class WaitK3sNodeReady(Action):
         self._executor.run(
             f"timeout {self._timeout} bash -c "
             f"'until k3s kubectl get node {node_q} --no-headers 2>/dev/null"
-            f' | grep -q " Ready "; do sleep 2; done\''
+            f' | grep -q " Ready "; do sleep 2; done\'',
+            stream=True,
         )
 
     def verify(self) -> bool:
@@ -345,13 +348,13 @@ class UninstallK3s(Action):
 
     def apply(self) -> None:
         if self._remove_data:
-            self._executor.run("/usr/local/bin/k3s-uninstall.sh")
+            self._executor.run("/usr/local/bin/k3s-uninstall.sh", stream=True)
         else:
-            self._executor.run("systemctl stop k3s 2>/dev/null || true")
-            self._executor.run("systemctl disable k3s 2>/dev/null || true")
-            self._executor.run("rm -f /usr/local/bin/k3s")
-            self._executor.run("rm -f /etc/systemd/system/k3s.service")
-            self._executor.run("systemctl daemon-reload")
+            self._executor.run("systemctl stop k3s 2>/dev/null || true", stream=True)
+            self._executor.run("systemctl disable k3s 2>/dev/null || true", stream=True)
+            self._executor.run("rm -f /usr/local/bin/k3s", stream=True)
+            self._executor.run("rm -f /etc/systemd/system/k3s.service", stream=True)
+            self._executor.run("systemctl daemon-reload", stream=True)
 
         if self._remove_kubeconfig and self._local_kubeconfig is not None:
             self._local_kubeconfig.unlink(missing_ok=True)

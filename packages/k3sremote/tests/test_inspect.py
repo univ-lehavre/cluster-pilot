@@ -11,7 +11,7 @@ class FakeExecutor:
     def __init__(self, results: dict[str, CommandResult]) -> None:
         self.results = results
 
-    def run(self, command: str) -> CommandResult:
+    def run(self, command: str, stream: bool = False) -> CommandResult:
         return self.results.get(command, CommandResult(command, "", "not found", 127))
 
 
