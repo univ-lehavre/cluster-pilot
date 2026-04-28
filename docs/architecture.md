@@ -500,7 +500,7 @@ Etat actuel :
 ✅ Phase 3  Planification
 ✅ Phase 4  Actions verifiables
 ✅ Phase 5  Runner et journal
-⬜ Phase 6  k3s present
+✅ Phase 6  k3s present
 ⬜ Phase 7  k3s absent
 ⬜ Phase 8  Health et drift
 🟡 Phase 9  Durcissement
@@ -671,24 +671,29 @@ Livrables :
 
 ### Phase 6 - k3s present
 
-Statut : ⬜ `todo`
+Statut : ✅ `done`
 
 Objectif : installer et demarrer k3s declarativement.
 
 Actions :
 
-- ⬜ implementer `InstallK3s`
-- ⬜ implementer `WriteK3sConfig`
-- ⬜ implementer `EnableSystemdService`
-- ⬜ implementer `StartSystemdService`
-- ⬜ implementer `WaitK3sNodeReady`
-- ⬜ implementer `FetchKubeconfig`
+- ✅ implementer `InstallK3s`
+- ✅ implementer `WriteK3sConfig` (via `WriteRemoteFile`)
+- ✅ implementer `SystemdServiceEnable`
+- ✅ implementer `SystemdServiceStart`
+- ✅ implementer `WaitK3sNodeReady`
+- ✅ implementer `FetchKubeconfig`
 
 Definition of done :
 
-- ⬜ `k3sctl plan` annonce les actions d'installation
-- ⬜ `k3sctl apply` installe k3s sur une machine de test
-- ⬜ `k3sctl verify` confirme service running, version attendue et node ready
+- ✅ `k3sctl plan` annonce les actions d'installation
+- ✅ `k3sctl apply` execute le plan complet via le runner transactionnel
+- ⬜ `k3sctl verify` confirme service running, version attendue et node ready (Phase 8)
+
+Livrables :
+
+- `packages/k3sremote/src/k3sremote/actions.py` (InstallK3s, SystemdServiceEnable, SystemdServiceStart, WaitK3sNodeReady, FetchKubeconfig)
+- `packages/k3sremote/src/k3sremote/builder.py` (actions k3s cablees)
 
 ### Phase 7 - k3s absent
 

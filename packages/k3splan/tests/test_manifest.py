@@ -55,6 +55,7 @@ def test_build_initial_plan() -> None:
         "systemd.k3s.enable",
         "systemd.k3s.start",
         "k3s.node.ready",
+        "k3s.kubeconfig.fetch",
     ]
 
 

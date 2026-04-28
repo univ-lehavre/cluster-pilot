@@ -1,11 +1,21 @@
 from io import StringIO
+from pathlib import Path
 
 from k3splan.actions import Action
 from k3splan.manifest import DesiredState
 from k3splan.planner import Plan
 from ruamel.yaml import YAML
 
-from k3sremote.actions import EnsurePackagePresent, SetSysctlValue, WriteRemoteFile
+from k3sremote.actions import (
+    EnsurePackagePresent,
+    FetchKubeconfig,
+    InstallK3s,
+    SetSysctlValue,
+    SystemdServiceEnable,
+    SystemdServiceStart,
+    WaitK3sNodeReady,
+    WriteRemoteFile,
+)
 from k3sremote.executor import RemoteExecutor
 
 
@@ -46,6 +56,22 @@ def _build_action(action_id: str, desired: DesiredState, executor: RemoteExecuto
     if action_id == "k3s.config.write":
         content = _render_k3s_config(desired)
         return WriteRemoteFile(executor, "/etc/rancher/k3s/config.yaml", content)
+
+    if action_id in ("k3s.install", "k3s.upgrade"):
+        return InstallK3s(executor, desired.spec.k3s.version, desired.spec.k3s.install.channel)
+
+    if action_id == "systemd.k3s.enable":
+        return SystemdServiceEnable(executor, "k3s")
+
+    if action_id == "systemd.k3s.start":
+        return SystemdServiceStart(executor, "k3s")
+
+    if action_id == "k3s.node.ready":
+        timeout = desired.spec.execution.verify.timeoutSeconds
+        return WaitK3sNodeReady(executor, desired.metadata.name, timeout)
+
+    if action_id == "k3s.kubeconfig.fetch":
+        return FetchKubeconfig(executor, Path("k3s.yaml"))
 
     return None
 

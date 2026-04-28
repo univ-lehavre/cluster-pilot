@@ -74,6 +74,11 @@ def build_initial_plan(desired: DesiredState) -> Plan:
                     description="Wait for node Ready",
                     rollback="none",
                 ),
+                PlannedAction(
+                    id="k3s.kubeconfig.fetch",
+                    description="Fetch kubeconfig",
+                    rollback="reversible",
+                ),
             ]
         )
     else:
@@ -220,6 +225,13 @@ def plan_k3s_present(desired: DesiredState, observed: ObservedState) -> list[Pla
             id="k3s.node.ready",
             description="Wait for node Ready",
             rollback="none",
+        )
+    )
+    actions.append(
+        PlannedAction(
+            id="k3s.kubeconfig.fetch",
+            description="Fetch kubeconfig",
+            rollback="reversible",
         )
     )
 

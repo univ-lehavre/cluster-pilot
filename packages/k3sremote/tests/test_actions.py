@@ -1,5 +1,16 @@
+from pathlib import Path
+
 from k3sremote import CommandResult
-from k3sremote.actions import EnsurePackagePresent, SetSysctlValue, WriteRemoteFile
+from k3sremote.actions import (
+    EnsurePackagePresent,
+    FetchKubeconfig,
+    InstallK3s,
+    SetSysctlValue,
+    SystemdServiceEnable,
+    SystemdServiceStart,
+    WaitK3sNodeReady,
+    WriteRemoteFile,
+)
 
 
 class FakeExecutor:
@@ -136,3 +147,158 @@ def test_sysctl_rollback_noop_when_no_previous_value() -> None:
     executor = FakeExecutor()
     SetSysctlValue(executor, "net.ipv4.ip_forward", "1").rollback(None)
     assert not executor.calls
+
+
+# --- InstallK3s ---
+
+
+def test_install_k3s_snapshot_absent() -> None:
+    executor = FakeExecutor({"command -v k3s": fail("")})
+    assert InstallK3s(executor, "v1.35.3+k3s1").snapshot() is None
+
+
+def test_install_k3s_snapshot_installed() -> None:
+    executor = FakeExecutor(
+        {
+            "command -v k3s": ok("", "/usr/local/bin/k3s"),
+            "k3s --version | head -n 1": ok("", "k3s version v1.35.3+k3s1"),
+        }
+    )
+    assert InstallK3s(executor, "v1.35.3+k3s1").snapshot() == "k3s version v1.35.3+k3s1"
+
+
+def test_install_k3s_apply_uses_version_env() -> None:
+    executor = FakeExecutor()
+    InstallK3s(executor, "v1.35.3+k3s1").apply()
+    assert any("INSTALL_K3S_VERSION" in cmd and "v1.35.3" in cmd for cmd in executor.calls)
+
+
+def test_install_k3s_apply_uses_channel_when_no_version() -> None:
+    executor = FakeExecutor()
+    InstallK3s(executor, None, channel="stable").apply()
+    assert any("INSTALL_K3S_CHANNEL" in cmd and "stable" in cmd for cmd in executor.calls)
+
+
+def test_install_k3s_verify_ok() -> None:
+    executor = FakeExecutor({"command -v k3s": ok("", "/usr/local/bin/k3s")})
+    assert InstallK3s(executor, None).verify() is True
+
+
+def test_install_k3s_rollback_uninstalls_when_not_preexisting() -> None:
+    executor = FakeExecutor()
+    InstallK3s(executor, None).rollback(None)
+    assert any("k3s-uninstall.sh" in cmd for cmd in executor.calls)
+
+
+def test_install_k3s_rollback_noop_when_preexisting() -> None:
+    executor = FakeExecutor()
+    InstallK3s(executor, None).rollback("k3s version v1.30.0+k3s1")
+    assert not executor.calls
+
+
+# --- SystemdServiceEnable ---
+
+
+def test_systemd_enable_snapshot_enabled() -> None:
+    executor = FakeExecutor({"systemctl is-enabled --quiet k3s": ok("")})
+    assert SystemdServiceEnable(executor, "k3s").snapshot() is True
+
+
+def test_systemd_enable_apply() -> None:
+    executor = FakeExecutor()
+    SystemdServiceEnable(executor, "k3s").apply()
+    assert any("systemctl enable" in cmd and "k3s" in cmd for cmd in executor.calls)
+
+
+def test_systemd_enable_rollback_disables_when_not_preexisting() -> None:
+    executor = FakeExecutor()
+    SystemdServiceEnable(executor, "k3s").rollback(False)
+    assert any("systemctl disable" in cmd for cmd in executor.calls)
+
+
+def test_systemd_enable_rollback_noop_when_preexisting() -> None:
+    executor = FakeExecutor()
+    SystemdServiceEnable(executor, "k3s").rollback(True)
+    assert not executor.calls
+
+
+# --- SystemdServiceStart ---
+
+
+def test_systemd_start_snapshot_active() -> None:
+    executor = FakeExecutor({"systemctl is-active --quiet k3s": ok("")})
+    assert SystemdServiceStart(executor, "k3s").snapshot() is True
+
+
+def test_systemd_start_apply() -> None:
+    executor = FakeExecutor()
+    SystemdServiceStart(executor, "k3s").apply()
+    assert any("systemctl start" in cmd and "k3s" in cmd for cmd in executor.calls)
+
+
+def test_systemd_start_rollback_stops_when_not_preexisting() -> None:
+    executor = FakeExecutor()
+    SystemdServiceStart(executor, "k3s").rollback(False)
+    assert any("systemctl stop" in cmd for cmd in executor.calls)
+
+
+# --- WaitK3sNodeReady ---
+
+
+def test_wait_node_ready_apply_runs_timeout_loop() -> None:
+    executor = FakeExecutor()
+    WaitK3sNodeReady(executor, "prod-1", 60).apply()
+    assert any("timeout 60" in cmd and "prod-1" in cmd for cmd in executor.calls)
+
+
+def test_wait_node_ready_verify_ok() -> None:
+    executor = FakeExecutor(
+        {"k3s kubectl get node prod-1 --no-headers 2>/dev/null | grep -q ' Ready '": ok("")}
+    )
+    assert WaitK3sNodeReady(executor, "prod-1").verify() is True
+
+
+def test_wait_node_ready_verify_fails() -> None:
+    executor = FakeExecutor(
+        {"k3s kubectl get node prod-1 --no-headers 2>/dev/null | grep -q ' Ready '": fail("")}
+    )
+    assert WaitK3sNodeReady(executor, "prod-1").verify() is False
+
+
+# --- FetchKubeconfig ---
+
+
+def test_fetch_kubeconfig_snapshot_existing(tmp_path: Path) -> None:
+    kubeconfig = tmp_path / "k3s.yaml"
+    kubeconfig.write_text("existing", encoding="utf-8")
+    assert FetchKubeconfig(FakeExecutor(), kubeconfig).snapshot() == "existing"
+
+
+def test_fetch_kubeconfig_snapshot_absent(tmp_path: Path) -> None:
+    assert FetchKubeconfig(FakeExecutor(), tmp_path / "k3s.yaml").snapshot() is None
+
+
+def test_fetch_kubeconfig_apply_writes_local_file(tmp_path: Path) -> None:
+    executor = FakeExecutor({"cat /etc/rancher/k3s/k3s.yaml": ok("", "kubeconfig-content")})
+    kubeconfig = tmp_path / "k3s.yaml"
+    FetchKubeconfig(executor, kubeconfig).apply()
+    assert kubeconfig.read_text(encoding="utf-8") == "kubeconfig-content"
+
+
+def test_fetch_kubeconfig_verify_ok(tmp_path: Path) -> None:
+    kubeconfig = tmp_path / "k3s.yaml"
+    kubeconfig.write_text("x", encoding="utf-8")
+    assert FetchKubeconfig(FakeExecutor(), kubeconfig).verify() is True
+
+
+def test_fetch_kubeconfig_rollback_deletes_when_absent(tmp_path: Path) -> None:
+    kubeconfig = tmp_path / "k3s.yaml"
+    kubeconfig.write_text("x", encoding="utf-8")
+    FetchKubeconfig(FakeExecutor(), kubeconfig).rollback(None)
+    assert not kubeconfig.exists()
+
+
+def test_fetch_kubeconfig_rollback_restores_content(tmp_path: Path) -> None:
+    kubeconfig = tmp_path / "k3s.yaml"
+    FetchKubeconfig(FakeExecutor(), kubeconfig).rollback("old-content")
+    assert kubeconfig.read_text(encoding="utf-8") == "old-content"
