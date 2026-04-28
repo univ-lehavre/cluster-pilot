@@ -296,6 +296,27 @@ Risques :
 
 Les actions irreversibles ou destructives doivent demander une confirmation explicite avant execution, sauf option forcee.
 
+### Limites du rollback automatique
+
+Certaines actions ne peuvent pas etre annulees de facon fiable :
+
+- `WaitK3sNodeReady` : attente pure, pas d'etat a restaurer (`none`) ;
+- `UninstallK3s` : la reinstallation automatique n'est pas fiable car les donnees cluster et la configuration initiale ne sont pas preservees (`none`) ;
+- `EnsurePackagePresent` : si le paquet etait deja present avant l'apply, le rollback ne le supprime pas pour eviter de casser l'existant.
+
+Les modes `reversible` (restauration de fichier ou de valeur sysctl) et `compensating` (desinstallation de paquet ou de k3s) sont fiables dans les conditions normales.
+
+### Risques d'upgrade k3s
+
+L'upgrade k3s (`k3s.upgrade`) porte un risque eleve pour les raisons suivantes :
+
+- Le noeud redemarrera automatiquement le service k3s et peut interrompre les charges de travail en cours.
+- En cluster multi-noeuds, upgrader un seul noeud peut creer une incompatibilite de version avec le plan de controle.
+- Le rollback (`compensating`) reinstalle l'ancienne version mais ne garantit pas la restauration de l'etat etcd si des migrations de schema ont eu lieu.
+- En cas d'echec de verification post-upgrade, le rollback peut lui-meme echouer si le script d'installation ne trouve plus la version anterieure dans le canal stable.
+
+Recommandation : toujours tester un upgrade sur un noeud de staging avant production, et utiliser `k3sctl plan --dry-run` pour verifier les actions prevues.
+
 ## Manifeste d'installation
 
 ```yaml
@@ -751,10 +772,10 @@ Objectif : rendre le projet robuste avant usage reel.
 Actions :
 
 - ⬜ ajouter tests d'integration sur VM ou container systemd si possible
-- 🟡 documenter les limites de rollback
-- ⬜ documenter les risques d'upgrade k3s
-- ⬜ ajouter mode `--dry-run` strict
-- ⬜ ajouter confirmations pour actions destructives
+- ✅ documenter les limites de rollback
+- ✅ documenter les risques d'upgrade k3s
+- ✅ ajouter mode `--dry-run` sur `k3sctl apply`
+- ✅ ajouter confirmations pour actions a risque eleve
 - ⬜ stabiliser le schema `v1alpha1`
 - ✅ documenter la separation manifeste public / inventaire prive
 - ✅ ajouter hooks qualite locaux
@@ -762,6 +783,6 @@ Actions :
 
 Definition of done :
 
-- 🟡 la documentation couvre installation, desinstallation, rollback et limites
-- 🟡 les commandes critiques ont des tests
-- ⬜ les erreurs CLI sont comprehensibles et actionnables
+- ✅ la documentation couvre installation, desinstallation, rollback et limites
+- ✅ les commandes critiques ont des tests
+- ✅ les erreurs CLI sont comprehensibles et actionnables

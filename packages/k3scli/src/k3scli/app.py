@@ -256,7 +256,11 @@ def drift(manifest: ManifestArgument = None, inventory: Path | None = None) -> N
 
 
 @app.command()
-def apply(manifest: ManifestArgument = None, inventory: Path | None = None) -> None:
+def apply(
+    manifest: ManifestArgument = None,
+    inventory: Path | None = None,
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show plan without executing."),
+) -> None:
     """Apply the desired state to the target machine."""
     manifest, inventory = resolve_paths(manifest, inventory)
     desired = load_manifest(manifest)
@@ -273,6 +277,26 @@ def apply(manifest: ManifestArgument = None, inventory: Path | None = None) -> N
     if generated_plan.empty:
         console.print("[green]OK[/] nothing to apply")
         return
+
+    table = Table(title=f"Plan: {generated_plan.target}")
+    table.add_column("#", justify="right")
+    table.add_column("Action")
+    table.add_column("Risk")
+    table.add_column("Rollback")
+    for index, action in enumerate(generated_plan.actions, start=1):
+        table.add_row(str(index), action.description, action.risk, action.rollback)
+    console.print(table)
+
+    if dry_run:
+        console.print("[dim]dry-run: no changes applied[/]")
+        return
+
+    confirm_for = set(desired.spec.execution.rollback.requireConfirmFor)
+    high_risk = [a for a in generated_plan.actions if a.risk in confirm_for or a.risk == "high"]
+    if high_risk:
+        descriptions = ", ".join(a.description for a in high_risk)
+        if not typer.confirm(f"High-risk actions detected ({descriptions}). Proceed?"):
+            raise typer.Abort()
 
     executor = SshExecutor(connection)
     actions, skipped = build_actions(desired, generated_plan, executor)
