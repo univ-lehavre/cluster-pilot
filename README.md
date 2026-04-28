@@ -39,6 +39,13 @@ uv run k3sctl context use prod
 uv run k3sctl inspect
 ```
 
+Utiliser Cilium comme CNI (a la place de Flannel) :
+
+```bash
+uv run k3sctl validate examples/cilium-server.yaml --inventory inventory.local.yaml
+uv run k3sctl plan examples/cilium-server.yaml --inventory inventory.local.yaml
+```
+
 Les manifestes publics utilisent `spec.connectionRef`. Les vraies informations
 de connexion sont a placer dans `inventory.local.yaml`, ignore par Git.
 
