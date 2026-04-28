@@ -502,7 +502,7 @@ Etat actuel :
 ✅ Phase 5  Runner et journal
 ✅ Phase 6  k3s present
 ✅ Phase 7  k3s absent
-⬜ Phase 8  Health et drift
+✅ Phase 8  Health et drift
 🟡 Phase 9  Durcissement
 ```
 
@@ -721,22 +721,26 @@ Livrables :
 
 ### Phase 8 - Health et drift
 
-Statut : ⬜ `todo`
+Statut : ✅ `done`
 
 Objectif : rendre l'outil utile au quotidien.
 
 Actions :
 
-- ⬜ ajouter `k3sctl doctor <manifest>`
-- ⬜ ajouter `k3sctl drift <manifest>`
-- ⬜ structurer les checks de sante
-- ⬜ afficher un verdict clair : `healthy`, `degraded`, `unhealthy`
+- ✅ ajouter `k3sctl doctor <manifest>`
+- ✅ ajouter `k3sctl drift <manifest>`
+- ✅ structurer les checks de sante
+- ✅ afficher un verdict clair : `healthy`, `degraded`, `unhealthy`
 
 Definition of done :
 
-- ⬜ le rapport distingue sante systeme, sante k3s et derive declarative
-- ⬜ les seuils du manifeste sont appliques
-- ⬜ le CLI propose la prochaine action pertinente
+- ✅ le rapport distingue sante systeme, sante k3s et derive declarative
+- ✅ les seuils du manifeste sont appliques (diskFreePercent, memoryFreeMiB)
+- ✅ drift affiche les actions necessaires et retourne exit code 1 si derive detectee
+
+Livrables :
+
+- `packages/k3splan/src/k3splan/health.py`
 
 ### Phase 9 - Durcissement
 

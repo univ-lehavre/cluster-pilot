@@ -3,6 +3,7 @@ from typing import Annotated, Any
 
 import typer
 from k3splan import Connection, load_inventory, load_manifest, resolve_connection
+from k3splan.health import check_health
 from k3splan.journal import Journal
 from k3splan.observed import ObservedState
 from k3splan.planner import build_plan
@@ -186,6 +187,72 @@ def plan(manifest: ManifestArgument = None, inventory: Path | None = None) -> No
         table.add_row(str(index), action.description, action.risk, action.rollback)
 
     console.print(table)
+
+
+@app.command()
+def doctor(manifest: ManifestArgument = None, inventory: Path | None = None) -> None:
+    """Check the health of the target machine against the desired state."""
+    manifest, inventory = resolve_paths(manifest, inventory)
+    desired = load_manifest(manifest)
+    target, connection = resolve_manifest_connection(manifest, inventory)
+    observed = inspect_machine(
+        target,
+        SshExecutor(connection),
+        package_names=desired.spec.system.packages.present,
+        sysctl_keys=list(desired.spec.system.sysctl),
+    )
+
+    report = check_health(desired, observed)
+
+    verdict_style = {"healthy": "green", "degraded": "yellow", "unhealthy": "red"}[report.verdict]
+    status_style = {"ok": "green", "warning": "yellow", "error": "red", "unknown": "dim"}
+
+    table = Table(title=f"Doctor: {report.target}")
+    table.add_column("Check")
+    table.add_column("Status")
+    table.add_column("Detail")
+
+    for check in report.checks:
+        style = status_style[check.status]
+        table.add_row(check.name, f"[{style}]{check.status}[/]", check.message)
+
+    console.print(table)
+    console.print(f"Verdict: [{verdict_style}]{report.verdict}[/]")
+
+    if report.verdict == "unhealthy":
+        raise typer.Exit(1)
+
+
+@app.command()
+def drift(manifest: ManifestArgument = None, inventory: Path | None = None) -> None:
+    """Show the declarative drift between desired and observed state."""
+    manifest, inventory = resolve_paths(manifest, inventory)
+    desired = load_manifest(manifest)
+    target, connection = resolve_manifest_connection(manifest, inventory)
+    observed = inspect_machine(
+        target,
+        SshExecutor(connection),
+        package_names=desired.spec.system.packages.present,
+        sysctl_keys=list(desired.spec.system.sysctl),
+    )
+
+    generated_plan = build_plan(desired, observed)
+
+    if generated_plan.empty:
+        console.print(f"[green]in sync[/] {generated_plan.target}")
+        return
+
+    table = Table(title=f"Drift: {generated_plan.target}")
+    table.add_column("#", justify="right")
+    table.add_column("Action required")
+    table.add_column("Risk")
+
+    for index, action in enumerate(generated_plan.actions, start=1):
+        table.add_row(str(index), action.description, action.risk)
+
+    console.print(table)
+    console.print(f"[yellow]{len(generated_plan.actions)} change(s) required[/]")
+    raise typer.Exit(1)
 
 
 @app.command()
