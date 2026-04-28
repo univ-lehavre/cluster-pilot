@@ -7,3 +7,5 @@
 __pycache__/
 inventory.local.yaml
 *.local.yaml
+.k3sctl.yaml
+.claude/

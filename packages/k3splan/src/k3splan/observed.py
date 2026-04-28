@@ -39,6 +39,8 @@ class SystemState(BaseModel):
     disk: DiskState = Field(default_factory=DiskState)
     memory: MemoryState = Field(default_factory=MemoryState)
     apt: AptState = Field(default_factory=AptState)
+    packages: dict[str, bool] = Field(default_factory=dict)
+    sysctl: dict[str, str | None] = Field(default_factory=dict)
 
 
 class K3sState(BaseModel):

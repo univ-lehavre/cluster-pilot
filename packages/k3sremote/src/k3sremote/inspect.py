@@ -37,7 +37,12 @@ CPU_USAGE_COMMAND = (
 )
 
 
-def inspect_machine(target: str, executor: RemoteExecutor) -> ObservedState:
+def inspect_machine(
+    target: str,
+    executor: RemoteExecutor,
+    package_names: list[str] | None = None,
+    sysctl_keys: list[str] | None = None,
+) -> ObservedState:
     errors: list[str] = []
 
     probe = executor.run("true")
@@ -60,6 +65,8 @@ def inspect_machine(target: str, executor: RemoteExecutor) -> ObservedState:
         disk=inspect_disk(executor.run),
         memory=inspect_memory(executor.run),
         apt=inspect_apt(executor.run),
+        packages=inspect_packages(executor.run, package_names or []),
+        sysctl=inspect_sysctl(executor.run, sysctl_keys or []),
     )
     k3s = inspect_k3s(executor.run, system.systemd)
 
@@ -225,6 +232,34 @@ def inspect_apt(run: Callable[[str], CommandResult]) -> AptState:
         upgradablePackages=upgradable_packages,
         systemUpToDate=system_up_to_date,
     )
+
+
+def inspect_packages(
+    run: Callable[[str], CommandResult], package_names: list[str]
+) -> dict[str, bool]:
+    packages: dict[str, bool] = {}
+
+    for package_name in package_names:
+        result = run(f"dpkg-query -W -f='${{Status}}' {shell_quote(package_name)}")
+        packages[package_name] = result.ok and result.stdout == "install ok installed"
+
+    return packages
+
+
+def inspect_sysctl(
+    run: Callable[[str], CommandResult], sysctl_keys: list[str]
+) -> dict[str, str | None]:
+    values: dict[str, str | None] = {}
+
+    for key in sysctl_keys:
+        result = run(f"sysctl -n {shell_quote(key)}")
+        values[key] = result.stdout.strip() if result.ok else None
+
+    return values
+
+
+def shell_quote(value: str) -> str:
+    return "'" + value.replace("'", "'\"'\"'") + "'"
 
 
 def inspect_k3s(run: Callable[[str], CommandResult], has_systemd: bool) -> K3sState:

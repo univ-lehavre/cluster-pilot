@@ -50,6 +50,11 @@ def test_inspect_machine_collects_system_and_k3s_state() -> None:
                 "2026-04-28T09:00:00+00:00\n3600",
             ),
             APT_UPGRADABLE_COMMAND: ok(APT_UPGRADABLE_COMMAND, "0"),
+            "dpkg-query -W -f='${Status}' 'curl'": ok(
+                "dpkg-query -W -f='${Status}' 'curl'",
+                "install ok installed",
+            ),
+            "sysctl -n 'net.ipv4.ip_forward'": ok("sysctl -n 'net.ipv4.ip_forward'", "1"),
             "command -v k3s": ok("command -v k3s", "/usr/local/bin/k3s"),
             "k3s --version | head -n 1": ok(
                 "k3s --version | head -n 1",
@@ -60,7 +65,12 @@ def test_inspect_machine_collects_system_and_k3s_state() -> None:
         }
     )
 
-    observed = inspect_machine("prod-1", executor)
+    observed = inspect_machine(
+        "prod-1",
+        executor,
+        package_names=["curl"],
+        sysctl_keys=["net.ipv4.ip_forward"],
+    )
 
     assert observed.sshAvailable is True
     assert observed.system.os == "Linux"
@@ -77,6 +87,8 @@ def test_inspect_machine_collects_system_and_k3s_state() -> None:
     assert observed.system.apt.packageListsFresh is True
     assert observed.system.apt.upgradablePackages == 0
     assert observed.system.apt.systemUpToDate is True
+    assert observed.system.packages == {"curl": True}
+    assert observed.system.sysctl == {"net.ipv4.ip_forward": "1"}
     assert observed.system.disk.totalMiB == 10000
     assert observed.system.disk.usedPercent == 40
     assert observed.system.memory.availableMiB == 1024
