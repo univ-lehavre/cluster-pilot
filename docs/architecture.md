@@ -566,7 +566,8 @@ Actions :
 
 - ✅ implementer une interface `RemoteExecutor`
 - ✅ ajouter un adaptateur SSH
-- ✅ collecter OS, architecture, systemd, k3s, disque, memoire
+- ✅ collecter OS, distribution, version, architecture, systemd, k3s, disque, memoire
+- ✅ collecter l'etat APT : disponibilite, fraicheur des listes et paquets upgradables
 - ✅ ajouter la commande `k3sctl inspect <manifest>`
 
 Definition of done :
@@ -574,6 +575,10 @@ Definition of done :
 - ✅ l'inspection fonctionne sur une machine accessible en SSH
 - ✅ l'etat observe est serialisable en JSON
 - ✅ les tests unitaires utilisent un faux executor
+
+Regle APT :
+
+- ✅ `apt system up to date` vaut `yes` seulement si les listes APT sont recentes et si aucun paquet n'est upgradable
 
 Ameliorations futures :
 

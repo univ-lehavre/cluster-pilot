@@ -1,4 +1,10 @@
 from k3sremote import CommandResult, inspect_machine
+from k3sremote.inspect import (
+    APT_LAST_UPDATE_COMMAND,
+    APT_UPGRADABLE_COMMAND,
+    CPU_USAGE_COMMAND,
+    OS_RELEASE_COMMAND,
+)
 
 
 class FakeExecutor:
@@ -23,6 +29,11 @@ def test_inspect_machine_collects_system_and_k3s_state() -> None:
             "true": ok("true"),
             "uname -s": ok("uname -s", "Linux"),
             "uname -m": ok("uname -m", "aarch64"),
+            OS_RELEASE_COMMAND: ok(
+                OS_RELEASE_COMMAND, "debian\n12\nDebian GNU/Linux 12 (bookworm)"
+            ),
+            "getconf _NPROCESSORS_ONLN": ok("getconf _NPROCESSORS_ONLN", "8"),
+            CPU_USAGE_COMMAND: ok(CPU_USAGE_COMMAND, "100 1000\n150 1200"),
             "command -v systemctl": ok("command -v systemctl", "/usr/bin/systemctl"),
             "df -Pm / | awk 'NR==2 {print $2,$3,$4,$5}'": ok(
                 "df -Pm / | awk 'NR==2 {print $2,$3,$4,$5}'",
@@ -33,6 +44,12 @@ def test_inspect_machine_collects_system_and_k3s_state() -> None:
                 "awk",
                 "2048 1024",
             ),
+            "command -v apt-get": ok("command -v apt-get", "/usr/bin/apt-get"),
+            APT_LAST_UPDATE_COMMAND: ok(
+                APT_LAST_UPDATE_COMMAND,
+                "2026-04-28T09:00:00+00:00\n3600",
+            ),
+            APT_UPGRADABLE_COMMAND: ok(APT_UPGRADABLE_COMMAND, "0"),
             "command -v k3s": ok("command -v k3s", "/usr/local/bin/k3s"),
             "k3s --version | head -n 1": ok(
                 "k3s --version | head -n 1",
@@ -48,7 +65,19 @@ def test_inspect_machine_collects_system_and_k3s_state() -> None:
     assert observed.sshAvailable is True
     assert observed.system.os == "Linux"
     assert observed.system.architecture == "aarch64"
+    assert observed.system.distribution == "debian"
+    assert observed.system.distributionVersion == "12"
+    assert observed.system.distributionPrettyName == "Debian GNU/Linux 12 (bookworm)"
+    assert observed.system.cpu.cores == 8
+    assert observed.system.cpu.usagePercent == 75.0
     assert observed.system.systemd is True
+    assert observed.system.apt.available is True
+    assert observed.system.apt.lastUpdate == "2026-04-28T09:00:00+00:00"
+    assert observed.system.apt.packageListsAgeSeconds == 3600
+    assert observed.system.apt.packageListsFresh is True
+    assert observed.system.apt.upgradablePackages == 0
+    assert observed.system.apt.systemUpToDate is True
+    assert observed.system.disk.totalMiB == 10000
     assert observed.system.disk.usedPercent == 40
     assert observed.system.memory.availableMiB == 1024
     assert observed.k3s.installed is True
@@ -71,7 +100,16 @@ def test_inspect_machine_handles_missing_k3s() -> None:
             "true": ok("true"),
             "uname -s": ok("uname -s", "Linux"),
             "uname -m": ok("uname -m", "x86_64"),
+            OS_RELEASE_COMMAND: ok(OS_RELEASE_COMMAND, "ubuntu\n24.04\nUbuntu 24.04.2 LTS"),
+            "getconf _NPROCESSORS_ONLN": ok("getconf _NPROCESSORS_ONLN", "4"),
+            CPU_USAGE_COMMAND: ok(CPU_USAGE_COMMAND, "100 1000\n200 1100"),
             "command -v systemctl": ok("command -v systemctl", "/usr/bin/systemctl"),
+            "command -v apt-get": ok("command -v apt-get", "/usr/bin/apt-get"),
+            APT_LAST_UPDATE_COMMAND: ok(
+                APT_LAST_UPDATE_COMMAND,
+                "2026-04-20T09:00:00+00:00\n691200",
+            ),
+            APT_UPGRADABLE_COMMAND: ok(APT_UPGRADABLE_COMMAND, "3"),
             "command -v k3s": fail("command -v k3s"),
         }
     )
@@ -79,5 +117,10 @@ def test_inspect_machine_handles_missing_k3s() -> None:
     observed = inspect_machine("prod-1", executor)
 
     assert observed.sshAvailable is True
+    assert observed.system.distribution == "ubuntu"
+    assert observed.system.cpu.cores == 4
+    assert observed.system.apt.packageListsFresh is False
+    assert observed.system.apt.upgradablePackages == 3
+    assert observed.system.apt.systemUpToDate is False
     assert observed.k3s.installed is False
     assert observed.k3s.version is None

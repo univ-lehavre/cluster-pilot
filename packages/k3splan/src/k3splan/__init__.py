@@ -8,10 +8,20 @@ from k3splan.manifest import (
     load_manifest,
     resolve_connection,
 )
-from k3splan.observed import DiskState, K3sState, MemoryState, ObservedState, SystemState
+from k3splan.observed import (
+    AptState,
+    CpuState,
+    DiskState,
+    K3sState,
+    MemoryState,
+    ObservedState,
+    SystemState,
+)
 
 __all__ = [
     "Connection",
+    "AptState",
+    "CpuState",
     "DesiredState",
     "DiskState",
     "Inventory",
