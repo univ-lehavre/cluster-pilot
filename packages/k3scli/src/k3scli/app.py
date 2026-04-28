@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import typer
-from k3splan import load_manifest
+from k3splan import load_inventory, load_manifest, resolve_connection
 from k3splan.planner import build_initial_plan
 from rich.console import Console
 from rich.table import Table
@@ -11,9 +11,13 @@ console = Console()
 
 
 @app.command()
-def validate(manifest: Path) -> None:
+def validate(manifest: Path, inventory: Path | None = None) -> None:
     """Validate a machine manifest."""
     desired = load_manifest(manifest)
+    if inventory is not None:
+        loaded_inventory = load_inventory(inventory)
+        resolve_connection(desired, loaded_inventory)
+
     console.print(f"[green]OK[/] {desired.kind} {desired.metadata.name}")
 
 
@@ -36,7 +40,16 @@ def plan(manifest: Path) -> None:
 
 
 @app.command()
-def inspect(manifest: Path) -> None:
+def inspect(manifest: Path, inventory: Path | None = None) -> None:
     """Inspect the target machine without modifying it."""
     desired = load_manifest(manifest)
+    if inventory is not None:
+        loaded_inventory = load_inventory(inventory)
+        connection = resolve_connection(desired, loaded_inventory)
+        console.print(
+            f"[yellow]Inspect is not implemented yet[/] for "
+            f"{desired.metadata.name} via {connection.user}@{connection.host}"
+        )
+        return
+
     console.print(f"[yellow]Inspect is not implemented yet[/] for {desired.metadata.name}")

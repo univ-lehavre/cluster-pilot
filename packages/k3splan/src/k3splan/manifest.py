@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from ruamel.yaml import YAML
 
 
@@ -15,6 +15,11 @@ class Connection(BaseModel):
     host: str
     user: str
     port: int = 22
+    identityFile: str | None = None
+
+
+class Inventory(BaseModel):
+    connections: dict[str, Connection] = Field(default_factory=dict)
 
 
 class Packages(BaseModel):
@@ -88,11 +93,22 @@ class Execution(BaseModel):
 
 
 class Spec(BaseModel):
-    connection: Connection
+    connection: Connection | None = None
+    connectionRef: str | None = None
     system: System = Field(default_factory=System)
     k3s: K3s
     health: Health = Field(default_factory=Health)
     execution: Execution = Field(default_factory=Execution)
+
+    @model_validator(mode="after")
+    def validate_connection_source(self) -> "Spec":
+        has_inline_connection = self.connection is not None
+        has_connection_ref = self.connectionRef is not None
+
+        if has_inline_connection == has_connection_ref:
+            raise ValueError("spec must define exactly one of connection or connectionRef")
+
+        return self
 
 
 class DesiredState(BaseModel):
@@ -106,3 +122,26 @@ def load_manifest(path: Path) -> DesiredState:
     yaml = YAML(typ="safe")
     raw = yaml.load(path.read_text(encoding="utf-8"))
     return DesiredState.model_validate(raw)
+
+
+def load_inventory(path: Path) -> Inventory:
+    yaml = YAML(typ="safe")
+    raw = yaml.load(path.read_text(encoding="utf-8"))
+    return Inventory.model_validate(raw)
+
+
+def resolve_connection(desired: DesiredState, inventory: Inventory | None = None) -> Connection:
+    if desired.spec.connection is not None:
+        return desired.spec.connection
+
+    if inventory is None:
+        raise ValueError("manifest uses connectionRef but no inventory was provided")
+
+    ref = desired.spec.connectionRef
+    if ref is None:
+        raise ValueError("manifest does not define a connection source")
+
+    try:
+        return inventory.connections[ref]
+    except KeyError as exc:
+        raise ValueError(f"connectionRef '{ref}' was not found in inventory") from exc

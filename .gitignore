@@ -5,3 +5,5 @@
 .uv-cache/
 .venv/
 __pycache__/
+inventory.local.yaml
+*.local.yaml

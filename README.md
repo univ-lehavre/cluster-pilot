@@ -16,8 +16,20 @@ Lancer le CLI :
 ```bash
 uv run k3sctl --help
 uv run k3sctl validate examples/single-server.yaml
+uv run k3sctl validate examples/single-server.yaml --inventory examples/inventory.example.yaml
 uv run k3sctl plan examples/single-server.yaml
 ```
+
+Les manifestes publics utilisent `spec.connectionRef`. Les vraies informations
+de connexion sont a placer dans `inventory.local.yaml`, ignore par Git.
+
+Creer un inventaire local :
+
+```bash
+cp examples/inventory.example.yaml inventory.local.yaml
+```
+
+Puis remplacer les valeurs d'exemple par les vraies informations de connexion.
 
 Verifier le depot :
 
@@ -53,4 +65,5 @@ uv run cz bump
 ## Documentation
 
 - [Architecture et phasage](docs/architecture.md)
+- [Manifestes et inventaires](docs/manifest.md)
 - [Release](docs/release.md)

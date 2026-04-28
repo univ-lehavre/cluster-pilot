@@ -10,6 +10,21 @@ def test_validate_command() -> None:
     assert "prod-1" in result.stdout
 
 
+def test_validate_command_with_inventory() -> None:
+    result = CliRunner().invoke(
+        app,
+        [
+            "validate",
+            "examples/single-server.yaml",
+            "--inventory",
+            "examples/inventory.example.yaml",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "OK" in result.stdout
+
+
 def test_plan_command() -> None:
     result = CliRunner().invoke(app, ["plan", "examples/single-server.yaml"])
 

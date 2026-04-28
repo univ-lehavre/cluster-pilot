@@ -1,0 +1,8 @@
+apiVersion: k3sctl.dev/v1alpha1
+kind: Machine
+metadata:
+  name: invalid
+
+spec:
+  k3s:
+    state: present
