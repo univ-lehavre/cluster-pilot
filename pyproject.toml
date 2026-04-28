@@ -1,0 +1,68 @@
+[project]
+name = "k3s-workspace"
+version = "0.1.0"
+description = "Declarative k3s machine reconciler workspace"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "k3scli",
+]
+
+[tool.uv.workspace]
+members = [
+    "packages/k3splan",
+    "packages/k3sremote",
+    "packages/k3scli",
+]
+
+[tool.uv.sources]
+k3splan = { workspace = true }
+k3sremote = { workspace = true }
+k3scli = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "commitizen>=4.13.10",
+    "mypy>=1.17.0",
+    "pre-commit>=4.2.0",
+    "pytest>=8.4.0",
+    "pytest-cov>=6.2.0",
+    "ruff>=0.12.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["packages"]
+python_files = ["test_*.py", "*_test.py"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = [
+    "packages/k3splan/src",
+    "packages/k3sremote/src",
+    "packages/k3scli/src",
+]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.1.0"
+tag_format = "v$version"
+update_changelog_on_bump = true
+major_version_zero = true
+version_files = [
+    "pyproject.toml:version",
+    "packages/k3splan/pyproject.toml:version",
+    "packages/k3sremote/pyproject.toml:version",
+    "packages/k3scli/pyproject.toml:version",
+]

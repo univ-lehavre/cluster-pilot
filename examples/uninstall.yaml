@@ -1,0 +1,31 @@
+apiVersion: k3sctl.dev/v1alpha1
+kind: Machine
+metadata:
+  name: prod-1
+
+spec:
+  connection:
+    type: ssh
+    host: 10.0.0.12
+    user: root
+
+  k3s:
+    state: absent
+
+    uninstall:
+      removeData: false
+      removeKubeconfig: true
+
+  health:
+    require:
+      - ssh.available
+      - k3s.absent
+      - systemd.k3s.absent
+
+  execution:
+    mode: transactional
+    rollback:
+      enabled: true
+      on:
+        - verifyFailure
+

@@ -1,0 +1,18 @@
+from k3scli.app import app
+from typer.testing import CliRunner
+
+
+def test_validate_command() -> None:
+    result = CliRunner().invoke(app, ["validate", "examples/single-server.yaml"])
+
+    assert result.exit_code == 0
+    assert "OK" in result.stdout
+    assert "prod-1" in result.stdout
+
+
+def test_plan_command() -> None:
+    result = CliRunner().invoke(app, ["plan", "examples/single-server.yaml"])
+
+    assert result.exit_code == 0
+    assert "Plan: prod-1" in result.stdout
+    assert "Install k3s" in result.stdout
