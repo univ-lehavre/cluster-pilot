@@ -1,6 +1,13 @@
 from pathlib import Path
 
-from k3splan import K3sState, ObservedState, load_inventory, load_manifest, resolve_connection
+from k3splan import (
+    K3sState,
+    ObservedState,
+    SystemState,
+    load_inventory,
+    load_manifest,
+    resolve_connection,
+)
 from k3splan.planner import build_initial_plan, build_plan
 from pydantic import ValidationError
 
@@ -72,8 +79,73 @@ def test_build_observed_plan_skips_install_when_k3s_is_present() -> None:
     assert "systemd.k3s.enable" not in [action.id for action in plan.actions]
 
 
+def test_build_observed_plan_skips_matching_packages_and_sysctl() -> None:
+    desired = load_manifest(Path("examples/single-server.yaml"))
+    plan = build_plan(
+        desired,
+        ObservedState(
+            target="prod-1",
+            sshAvailable=True,
+            system=SystemState(
+                packages={
+                    "curl": True,
+                    "iptables": True,
+                    "ca-certificates": True,
+                },
+                sysctl={
+                    "net.ipv4.ip_forward": "1",
+                    "net.bridge.bridge-nf-call-iptables": "1",
+                },
+            ),
+        ),
+    )
+
+    action_ids = [action.id for action in plan.actions]
+
+    assert "package.present.curl" not in action_ids
+    assert "package.present.iptables" not in action_ids
+    assert "package.present.ca-certificates" not in action_ids
+    assert "sysctl.net.ipv4.ip_forward" not in action_ids
+    assert "sysctl.net.bridge.bridge-nf-call-iptables" not in action_ids
+
+
 def test_build_observed_plan_blocks_when_ssh_is_unavailable() -> None:
     desired = load_manifest(Path("examples/single-server.yaml"))
     plan = build_plan(desired, ObservedState(target="prod-1", sshAvailable=False))
 
     assert [action.id for action in plan.actions] == ["ssh.unavailable"]
+
+
+def test_load_cilium_manifest() -> None:
+    desired = load_manifest(Path("examples/cilium-server.yaml"))
+
+    assert desired.spec.networking.cni == "cilium"
+    assert desired.spec.networking.cilium.version == "1.19.3"
+    assert desired.spec.networking.cilium.kubeProxyReplacement is True
+
+
+def test_build_initial_plan_with_cilium() -> None:
+    desired = load_manifest(Path("examples/cilium-server.yaml"))
+    plan = build_initial_plan(desired)
+
+    action_ids = [action.id for action in plan.actions]
+    cilium_idx = action_ids.index("cilium.helmchart.write")
+    config_idx = action_ids.index("k3s.config.write")
+
+    assert cilium_idx < config_idx
+
+
+def test_build_observed_plan_with_cilium() -> None:
+    desired = load_manifest(Path("examples/cilium-server.yaml"))
+    plan = build_plan(desired, ObservedState(target="prod-1", sshAvailable=True))
+
+    action_ids = [action.id for action in plan.actions]
+    assert "cilium.helmchart.write" in action_ids
+    assert action_ids.index("cilium.helmchart.write") < action_ids.index("k3s.config.write")
+
+
+def test_flannel_manifest_has_no_cilium_action() -> None:
+    desired = load_manifest(Path("examples/single-server.yaml"))
+    plan = build_initial_plan(desired)
+
+    assert "cilium.helmchart.write" not in [action.id for action in plan.actions]

@@ -31,6 +31,17 @@ class System(BaseModel):
     sysctl: dict[str, str] = Field(default_factory=dict)
 
 
+class CiliumConfig(BaseModel):
+    version: str = "1.19.3"
+    kubeProxyReplacement: bool = False
+    helmValues: dict[str, object] = Field(default_factory=dict)
+
+
+class Networking(BaseModel):
+    cni: Literal["flannel", "cilium"] = "flannel"
+    cilium: CiliumConfig = Field(default_factory=CiliumConfig)
+
+
 class K3sInstall(BaseModel):
     channel: str = "stable"
     method: Literal["official-script"] = "official-script"
@@ -96,6 +107,7 @@ class Spec(BaseModel):
     connection: Connection | None = None
     connectionRef: str | None = None
     system: System = Field(default_factory=System)
+    networking: Networking = Field(default_factory=Networking)
     k3s: K3s
     health: Health = Field(default_factory=Health)
     execution: Execution = Field(default_factory=Execution)

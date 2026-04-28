@@ -47,6 +47,7 @@ def build_initial_plan(desired: DesiredState) -> Plan:
         version = desired.spec.k3s.version or desired.spec.k3s.install.channel
         actions.extend(
             [
+                *_plan_networking(desired),
                 PlannedAction(
                     id="k3s.config.write",
                     description="Write /etc/rancher/k3s/config.yaml",
@@ -105,7 +106,7 @@ def build_plan(desired: DesiredState, observed: ObservedState | None = None) -> 
         )
         return Plan(target=desired.metadata.name, actions=actions)
 
-    actions.extend(plan_system_prerequisites(desired))
+    actions.extend(plan_system_prerequisites(desired, observed))
 
     if desired.spec.k3s.state == "present":
         actions.extend(plan_k3s_present(desired, observed))
@@ -115,10 +116,16 @@ def build_plan(desired: DesiredState, observed: ObservedState | None = None) -> 
     return Plan(target=desired.metadata.name, actions=actions)
 
 
-def plan_system_prerequisites(desired: DesiredState) -> list[PlannedAction]:
+def plan_system_prerequisites(
+    desired: DesiredState,
+    observed: ObservedState | None = None,
+) -> list[PlannedAction]:
     actions: list[PlannedAction] = []
 
     for package in desired.spec.system.packages.present:
+        if observed is not None and observed.system.packages.get(package) is True:
+            continue
+
         actions.append(
             PlannedAction(
                 id=f"package.present.{package}",
@@ -128,6 +135,9 @@ def plan_system_prerequisites(desired: DesiredState) -> list[PlannedAction]:
         )
 
     for key, value in desired.spec.system.sysctl.items():
+        if observed is not None and observed.system.sysctl.get(key) == value:
+            continue
+
         actions.append(
             PlannedAction(
                 id=f"sysctl.{key}",
@@ -139,10 +149,25 @@ def plan_system_prerequisites(desired: DesiredState) -> list[PlannedAction]:
     return actions
 
 
+def _plan_networking(desired: DesiredState) -> list[PlannedAction]:
+    if desired.spec.networking.cni != "cilium":
+        return []
+
+    cilium = desired.spec.networking.cilium
+    return [
+        PlannedAction(
+            id="cilium.helmchart.write",
+            description=f"Write Cilium HelmChart manifest (v{cilium.version})",
+            rollback="reversible",
+        )
+    ]
+
+
 def plan_k3s_present(desired: DesiredState, observed: ObservedState) -> list[PlannedAction]:
     actions: list[PlannedAction] = []
     version = desired.spec.k3s.version or desired.spec.k3s.install.channel
 
+    actions.extend(_plan_networking(desired))
     actions.append(
         PlannedAction(
             id="k3s.config.write",
