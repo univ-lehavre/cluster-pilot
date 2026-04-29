@@ -49,3 +49,46 @@ spec:
     service:
       enabled: true
       running: true
+
+  health:
+    require:
+      - ssh.available
+      - system.os.supported
+      - system.disk.available
+      - system.memory.available
+      - systemd.k3s.running
+      - k3s.version.matches
+      - k3s.node.ready
+      - k3s.systemPods.healthy
+
+    thresholds:
+      diskFreePercent: 15
+      memoryFreeMiB: 512
+
+  execution:
+    mode: transactional
+
+    plan:
+      showDiff: true
+      includeNoop: false
+
+    verify:
+      afterEachAction: true
+      timeoutSeconds: 120
+
+    rollback:
+      enabled: true
+      on:
+        - applyFailure
+        - verifyFailure
+
+      requireConfirmFor:
+        - destructive
+        - irreversible
+
+      strategy: reverse-applied-actions
+
+    journal:
+      location: local
+      path: .pilot/runs
+      keep: 20
