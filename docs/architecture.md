@@ -53,7 +53,7 @@ Stack initiale :
 
 La distribution cible initiale est un outil lance depuis un poste ou une machine d'administration.
 
-Extension prevue pour les metriques continues :
+Extension pour les metriques continues :
 
 - un agent distant ecrit en Go, livre comme binaire autonome ;
 - un contrat Protobuf partage entre l'agent Go et le client Python ;
@@ -69,8 +69,8 @@ independants, ou une compatibilite inter-versions longue duree.
 ## Organisation du depot
 
 Le depot est un monorepo `uv workspace`, avec des paquets separes par responsabilite.
-Il peut devenir polyglotte en ajoutant un agent Go dans une zone dediee, sans
-melanger les responsabilites avec les paquets Python.
+Il est polyglotte : les paquets Python restent sous `packages/`, et l'agent Go
+vit dans une zone dediee pour ne pas melanger les responsabilites.
 
 ```text
 k3s/
@@ -128,8 +128,8 @@ Responsabilites :
 - `k3splan` contient le moteur declaratif pur : manifestes, etat observe, planification, actions, runner, journal ;
 - `k3sremote` contient les adaptateurs systeme : SSH, systemd, fichiers distants, commandes k3s ;
 - `k3scli` contient l'interface utilisateur : commandes Typer, affichage Rich, options CLI.
-- `agents/k3sagent` contiendra l'agent Go deployable sur la machine distante pour les metriques continues ;
-- `proto` contiendra les contrats Protobuf partages entre Go et Python.
+- `agents/k3sagent` contient l'agent Go deployable sur la machine distante pour les metriques continues ;
+- `proto` contient les contrats Protobuf partages entre Go et Python.
 
 Regle de dependance :
 

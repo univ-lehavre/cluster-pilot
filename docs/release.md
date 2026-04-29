@@ -21,10 +21,10 @@ monorepo :
 
 Les versions sont mises a jour ensemble par Commitizen.
 
-L'agent Go prevu dans `agents/k3sagent` n'existe pas encore. Tant qu'il reste
-pilote par `k3sctl`, il doit suivre la meme version produit que les paquets
-Python. Si l'agent devient un composant autonome avec son propre cycle de
-release, la strategie de version devra etre separee explicitement.
+L'agent Go dans `agents/k3sagent` suit la meme version produit que les paquets
+Python tant qu'il reste pilote par `k3sctl`. Si l'agent devient un composant
+autonome avec son propre cycle de release, la strategie de version devra etre
+separee explicitement.
 
 ## Commits
 
@@ -65,6 +65,9 @@ uv run ruff format --check .
 uv run ruff check .
 uv run mypy packages
 uv run pytest
+cd agents/k3sagent
+go test ./...
+go build ./cmd/k3sagent
 ```
 
 ## Bump local
@@ -114,8 +117,9 @@ Le workflow :
 4. pousse le commit de bump et le tag vers `main` ;
 5. build les distributions avec
    `uv build --all-packages --out-dir dist --clear --no-create-gitignore` ;
-6. publie les distributions sur PyPI ;
-7. cree une GitHub Release avec les artefacts de `dist/`.
+6. build l'agent Go dans `dist/k3sagent` ;
+7. publie les distributions Python sur PyPI ;
+8. cree une GitHub Release avec les artefacts de `dist/`.
 
 ## Publication PyPI
 

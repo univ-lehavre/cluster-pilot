@@ -89,12 +89,13 @@ uv run mypy packages
 uv run pytest
 ```
 
-Le depot ne contient pas encore l'outillage Go. Lors de l'ajout de l'agent, les
-commandes de verification devront inclure les tests et le build Go, par exemple :
+Verifier l'agent Go :
 
 ```bash
+cd agents/k3sagent
 go test ./...
-go build ./agents/k3sagent/cmd/k3sagent
+go build ./cmd/k3sagent
+./k3sagent --samples 1
 ```
 
 Installer les hooks Git :

@@ -25,12 +25,11 @@ desired state -> observed state -> plan -> action -> verify -> commit/rollback
 - `docs/plan.md` : phasage du projet.
 - `docs/manifest.md` : manifestes et inventaires.
 - `docs/release.md` : versionnement et release.
+- `agents/k3sagent` : agent Go experimental pour les metriques continues.
+- `proto/k3smetrics.proto` : contrat Protobuf source pour les futurs flux gRPC.
 - `.github/workflows/checks.yml` : checks GitHub Actions.
 - `.github/workflows/release.yml` : bump, build, publication PyPI et GitHub
   Release.
-
-Une extension future prevoit un agent Go dans `agents/k3sagent` avec contrats
-Protobuf dans `proto/`. Cet outillage n'existe pas encore.
 
 ## Regles de contribution
 
@@ -93,6 +92,8 @@ uv run pre-commit install --hook-type commit-msg
   la verification Commitizen.
 - Les checks GitHub doivent rester alignes avec les commandes locales :
   `ruff format --check`, `ruff check`, `mypy packages` et `pytest`.
+- Les checks Go doivent rester alignes avec `go test ./...` et
+  `go build ./cmd/k3sagent` depuis `agents/k3sagent`.
 - Le workflow de release doit rester manuel et ne doit pas stocker de token PyPI
   dans le depot. Utiliser Trusted Publishing avec l'environnement GitHub `pypi`.
 

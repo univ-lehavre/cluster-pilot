@@ -26,6 +26,12 @@ jobs:
       - name: Install Python
         run: uv python install 3.12
 
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: agents/k3sagent/go.mod
+          cache-dependency-path: agents/k3sagent/go.mod
+
       - name: Install dependencies
         run: uv sync --all-packages --dev --frozen
 
@@ -40,3 +46,11 @@ jobs:
 
       - name: Test
         run: uv run pytest
+
+      - name: Test Go agent
+        working-directory: agents/k3sagent
+        run: go test ./...
+
+      - name: Build Go agent
+        working-directory: agents/k3sagent
+        run: go build ./cmd/k3sagent

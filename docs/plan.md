@@ -37,7 +37,7 @@ Ce document suit le phasage du projet `k3sctl`.
 ✅ Phase 7  k3s absent
 ✅ Phase 8  Health et drift
 🟡 Phase 9  Durcissement
-⬜ Phase 10 Agent Go et metriques continues
+🟡 Phase 10 Agent Go et metriques continues
 ```
 
 ## Phase 0 - Cadrage du socle
@@ -302,25 +302,25 @@ Definition of done :
 
 ## Phase 10 - Agent Go et metriques continues
 
-Statut : ⬜ `todo`
+Statut : 🟡 `partial`
 
 Objectif : fournir un canal durable pour streamer des metriques systeme sans
 dependre d'une commande SSH longue duree.
 
 Actions :
 
-- ⬜ creer `agents/k3sagent` avec un module Go dedie
-- ⬜ creer `proto/k3smetrics.proto` comme contrat source
+- ✅ creer `agents/k3sagent` avec un module Go dedie
+- ✅ creer `proto/k3smetrics.proto` comme contrat source
 - ⬜ generer les stubs Go et Python depuis le contrat Protobuf
-- ⬜ implementer `StreamCpu` dans l'agent Go
+- ⬜ implementer `StreamCpu` en gRPC dans l'agent Go
 - ⬜ faire ecouter l'agent sur `127.0.0.1` par defaut
 - ⬜ ajouter un client Python dans `k3sremote`
 - ⬜ documenter le tunnel SSH vers l'agent
-- ⬜ ajouter `go test ./...` et `go build` aux verifications du depot
+- ✅ ajouter `go test ./...` et `go build` aux verifications du depot
 
 Definition of done :
 
-- ⬜ un agent Go peut etre compile en binaire autonome
+- ✅ un agent Go peut etre compile en binaire autonome
 - ⬜ `k3sctl` peut consommer le stream CPU via gRPC
 - ⬜ le flux fonctionne quand le seul acces reseau est SSH
 - ⬜ les contrats Protobuf sont versionnes et partages par Go et Python
