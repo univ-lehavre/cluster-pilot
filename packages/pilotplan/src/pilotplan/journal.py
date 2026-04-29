@@ -110,6 +110,29 @@ class Journal:
         for old in runs[: -self._keep]:
             old.unlink()
 
+    def load_run(self, run_id: str) -> RunRecord:
+        run_file = self._path / f"{run_id}.json"
+        if not run_file.exists():
+            raise FileNotFoundError(f"run {run_id} not found in {self._path}")
+        data = json.loads(run_file.read_text(encoding="utf-8"))
+        record = RunRecord(
+            run_id=data["run_id"],
+            target=data["target"],
+            started_at=data["started_at"],
+            success=data.get("success"),
+        )
+        for a in data.get("actions", []):
+            record.actions.append(
+                ActionRecord(
+                    id=a["id"],
+                    description=a["description"],
+                    status=a["status"],
+                    snapshot=a.get("snapshot"),
+                    error=a.get("error"),
+                )
+            )
+        return record
+
     def list_runs(self) -> list[RunRecord]:
         runs = []
         for path in sorted(self._path.glob("*.json"), reverse=True):
