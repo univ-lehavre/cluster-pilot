@@ -44,6 +44,7 @@ tasks:
     desc: Lance les tests d'intégration (Docker requis)
     deps: [docker:build:target]
     cmds:
+      - task: clean:containers
       - uv run pytest tests/integration/ -v -s -p no:timeout
 
   # ── Agent Go ───────────────────────────────────────────────────────────────
@@ -91,6 +92,19 @@ tasks:
       - |
         sed -i '' 's/^import pilotmetrics_pb2/from pilotremote.gen import pilotmetrics_pb2/' \
           packages/pilotremote/src/pilotremote/gen/pilotmetrics_pb2_grpc.py
+
+  # ── Nettoyage ──────────────────────────────────────────────────────────────
+
+  clean:containers:
+    desc: Stoppe les containers de test résiduels (port 2222)
+    cmds:
+      - |
+        IDS=$(docker ps -q --filter "publish=2222")
+        if [ -n "$IDS" ]; then
+          echo "Arrêt des containers résiduels sur le port 2222 : $IDS"
+          docker stop $IDS
+        fi
+    silent: false
 
   # ── Docker ─────────────────────────────────────────────────────────────────
 
