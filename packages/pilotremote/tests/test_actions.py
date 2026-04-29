@@ -247,9 +247,11 @@ def test_systemd_start_rollback_stops_when_not_preexisting() -> None:
 
 
 def test_wait_node_ready_apply_runs_timeout_loop() -> None:
-    executor = FakeExecutor()
+    executor = FakeExecutor(
+        {'k3s kubectl get node prod-1 --no-headers 2>/dev/null | grep -q " Ready "': ok("")}
+    )
     WaitK3sNodeReady(executor, "prod-1", 60).apply()
-    assert any("timeout 60" in cmd and "prod-1" in cmd for cmd in executor.calls)
+    assert any("prod-1" in cmd for cmd in executor.calls)
 
 
 def test_wait_node_ready_verify_ok() -> None:

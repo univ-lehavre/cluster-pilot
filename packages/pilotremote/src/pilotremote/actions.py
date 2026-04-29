@@ -270,16 +270,22 @@ class WaitK3sNodeReady(Action):
         return None
 
     def apply(self) -> None:
+        import time
+
         node_q = shlex.quote(self._node)
-        self._executor.run(
-            f"timeout {self._timeout} bash -c "
-            f"'until k3s kubectl get node {node_q} --no-headers 2>/dev/null"
-            f' | grep -q " Ready "; do'
-            f" echo 'node not ready yet, retrying in 5s...';"
-            f" sleep 5;"
-            f" done'",
-            stream=True,
-        )
+        deadline = time.monotonic() + self._timeout
+        while time.monotonic() < deadline:
+            ready = self._executor.run(
+                f'k3s kubectl get node {node_q} --no-headers 2>/dev/null | grep -q " Ready "'
+            ).ok
+            if ready:
+                return
+            self._executor.run(
+                "journalctl -u k3s -n 5 --no-pager --output=cat 2>/dev/null || true",
+                stream=True,
+            )
+            time.sleep(5)
+        raise TimeoutError(f"k3s node {self._node!r} not ready after {self._timeout}s")
 
     def verify(self) -> bool:
         node_q = shlex.quote(self._node)
