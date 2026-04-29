@@ -3,6 +3,25 @@
 Outil declaratif experimental pour inspecter, planifier et reconciler l'etat k3s
 d'une machine distante.
 
+## Architecture
+
+Le depot est un monorepo pilote principalement par Python et `uv` :
+
+- `packages/k3splan` contient le moteur declaratif ;
+- `packages/k3sremote` contient les adaptateurs distants, notamment SSH ;
+- `packages/k3scli` expose le CLI `k3sctl`.
+
+Le choix retenu pour les metriques continues est de garder l'application et le
+CLI en Python, et d'ajouter si besoin un agent distant en Go dans le meme
+monorepo. L'agent vivrait dans `agents/k3sagent`, exposerait une API gRPC locale
+sur la machine distante, et partagerait ses contrats Protobuf avec le client
+Python.
+
+Ce modele permet de deployer un binaire Go simple sur la machine distante tout en
+gardant l'orchestration, les manifests et l'experience CLI dans Python. Si la
+seule connexion disponible est SSH, le client Python accede a l'agent via un
+tunnel SSH vers `127.0.0.1` sur la machine distante.
+
 ## Developpement
 
 Installer l'environnement :
@@ -70,6 +89,14 @@ uv run mypy packages
 uv run pytest
 ```
 
+Le depot ne contient pas encore l'outillage Go. Lors de l'ajout de l'agent, les
+commandes de verification devront inclure les tests et le build Go, par exemple :
+
+```bash
+go test ./...
+go build ./agents/k3sagent/cmd/k3sagent
+```
+
 Installer les hooks Git :
 
 ```bash
@@ -94,6 +121,8 @@ uv run cz bump
 
 ## Documentation
 
-- [Architecture et phasage](docs/architecture.md)
+- [Instructions pour agents IA](AGENTS.md)
+- [Architecture](docs/architecture.md)
+- [Plan](docs/plan.md)
 - [Manifestes et inventaires](docs/manifest.md)
 - [Release](docs/release.md)

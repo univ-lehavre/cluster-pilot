@@ -10,6 +10,11 @@ monorepo :
 
 Les versions sont mises a jour ensemble par Commitizen.
 
+L'agent Go prevu dans `agents/k3sagent` n'existe pas encore. Tant qu'il reste
+pilote par `k3sctl`, il doit suivre la meme version produit que les paquets
+Python. Si l'agent devient un composant autonome avec son propre cycle de
+release, la strategie de version devra etre separee explicitement.
+
 ## Commits
 
 Les messages de commit suivent Conventional Commits :
