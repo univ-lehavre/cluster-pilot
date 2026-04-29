@@ -16,7 +16,8 @@ Ce document suit le phasage du projet `k3sctl`.
 - [Phase 7 - k3s absent](#phase-7---k3s-absent)
 - [Phase 8 - Health et drift](#phase-8---health-et-drift)
 - [Phase 9 - Durcissement](#phase-9---durcissement)
-- [Phase 10 - Agent Go et metriques continues](#phase-10---agent-go-et-metriques-continues)
+- [Phase 10 - Modes CI, commande et smart](#phase-10---modes-ci-commande-et-smart)
+- [Phase 11 - Agent Go et metriques continues](#phase-11---agent-go-et-metriques-continues)
 
 ## Statuts
 
@@ -37,7 +38,8 @@ Ce document suit le phasage du projet `k3sctl`.
 ✅ Phase 7  k3s absent
 ✅ Phase 8  Health et drift
 🟡 Phase 9  Durcissement
-🟡 Phase 10 Agent Go et metriques continues
+⬜ Phase 10 Modes CI, commande et smart
+🟡 Phase 11 Agent Go et metriques continues
 ```
 
 ## Phase 0 - Cadrage du socle
@@ -300,7 +302,44 @@ Definition of done :
 - ✅ les commandes critiques ont des tests
 - ✅ les erreurs CLI sont comprehensibles et actionnables
 
-## Phase 10 - Agent Go et metriques continues
+## Phase 10 - Modes CI, commande et smart
+
+Statut : ⬜ `todo`
+
+Objectif : adapter l'experience `k3sctl` a trois usages distincts sans
+dupliquer le moteur declaratif.
+
+Modes cibles :
+
+- `commande` : commandes explicites actuelles avec arguments (`validate`,
+  `inspect`, `plan`, `apply`, `doctor`, `drift`) ;
+- `ci` : mode non interactif, sorties JSON stables et codes de sortie
+  documentes ;
+- `smart` : mode assiste qui observe l'etat actuel, compare avec l'etat desire
+  et propose les prochaines actions possibles.
+
+Actions :
+
+- ⬜ formaliser les contrats de sortie JSON pour `validate`, `inspect`, `plan`,
+  `doctor` et `drift`
+- ⬜ documenter les codes de sortie CI
+- ⬜ ajouter un sous-ensemble `k3sctl ci ...` non interactif
+- ⬜ ajouter `k3sctl smart` avec contexte actif optionnel
+- ⬜ creer un modele de suggestion avec commande equivalente, justification,
+  risque et prerequis
+- ⬜ proposer `context set` quand aucun contexte actif n'est configure
+- ⬜ proposer les diagnostics SSH quand l'inspection echoue
+- ⬜ proposer `plan`, `apply --dry-run` ou `apply` quand une derive est detectee
+- ⬜ conserver le mode commande comme surface stable et directe
+
+Definition of done :
+
+- ⬜ les commandes CI sont utilisables dans GitHub Actions sans parsing Rich
+- ⬜ `smart` affiche des propositions expliquees et actionnables
+- ⬜ chaque suggestion peut etre reliee a une commande CLI explicite
+- ⬜ les tests couvrent les decisions principales du mode smart
+
+## Phase 11 - Agent Go et metriques continues
 
 Statut : 🟡 `partial`
 

@@ -11,6 +11,10 @@ Le depot est un monorepo pilote principalement par Python et `uv` :
 - `packages/k3sremote` contient les adaptateurs distants, notamment SSH ;
 - `packages/k3scli` expose le CLI `k3sctl`.
 
+Le CLI doit couvrir trois usages : un mode commande explicite, un mode CI
+non interactif avec sorties stables, et un mode smart qui observe l'etat actuel,
+compare avec l'etat desire et propose les prochaines actions possibles.
+
 Le choix retenu pour les metriques continues est de garder l'application et le
 CLI en Python, et d'ajouter si besoin un agent distant en Go dans le meme
 monorepo. L'agent vivrait dans `agents/k3sagent`, exposerait une API gRPC locale

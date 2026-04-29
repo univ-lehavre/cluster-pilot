@@ -41,6 +41,8 @@ desired state -> observed state -> plan -> action -> verify -> commit/rollback
 - Ne pas versionner de secrets, d'adresses internes, de kubeconfigs ou
   d'inventaires locaux.
 - Garder `k3splan` independant de SSH, du CLI et des effets de bord systeme.
+- Respecter les trois modes cibles du CLI : commande explicite, CI non
+  interactif et smart assiste par `desired + observed`.
 - Preferer des changements scopes, alignes avec les patterns existants.
 - Eviter les refactors opportunistes non lies a la tache.
 - Mettre a jour la documentation quand un comportement utilisateur, un contrat

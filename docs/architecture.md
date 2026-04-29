@@ -7,6 +7,7 @@
 - [Organisation du depot](#organisation-du-depot)
 - [Agent distant Go](#agent-distant-go)
 - [CLI cible](#cli-cible)
+- [Modes CLI](#modes-cli)
 - [Contrats du moteur](#contrats-du-moteur)
 - [Rollback](#rollback)
 - [Manifeste d'installation](#manifeste-dinstallation)
@@ -225,6 +226,70 @@ k3sctl apply examples/single-server.yaml --inventory inventory.local.yaml --from
 k3sctl drift examples/single-server.yaml --inventory inventory.local.yaml
 k3sctl doctor examples/single-server.yaml --inventory inventory.local.yaml
 ```
+
+## Modes CLI
+
+`k3sctl` doit couvrir trois modes d'usage complementaires.
+
+### Mode commande
+
+Le mode commande est le mode CLI explicite actuel. L'utilisateur choisit une
+commande et ses arguments :
+
+```bash
+k3sctl validate examples/single-server.yaml
+k3sctl inspect examples/single-server.yaml --inventory inventory.local.yaml
+k3sctl plan examples/single-server.yaml --inventory inventory.local.yaml
+k3sctl apply examples/single-server.yaml --inventory inventory.local.yaml
+```
+
+Ce mode privilegie la predictibilite et la composabilite shell.
+
+### Mode CI
+
+Le mode CI est non interactif et stable pour l'automatisation.
+
+Objectifs :
+
+- aucune question interactive ;
+- sorties machine-readable, en particulier JSON ;
+- codes de sortie documentes ;
+- erreurs concises sur `stderr` ;
+- options explicites pour refuser les actions destructives ou imposer un
+  `--dry-run`.
+
+Commandes ciblees :
+
+```bash
+k3sctl ci validate --manifest examples/single-server.yaml
+k3sctl ci inspect --manifest examples/single-server.yaml --inventory inventory.local.yaml --output json
+k3sctl ci plan --manifest examples/single-server.yaml --inventory inventory.local.yaml --output json
+k3sctl ci drift --manifest examples/single-server.yaml --inventory inventory.local.yaml
+```
+
+### Mode smart
+
+Le mode smart assiste l'utilisateur a partir de l'etat desire et de l'etat
+observe. Il inspecte la machine, construit le plan, puis propose les actions
+pertinentes au lieu d'obliger l'utilisateur a connaitre la prochaine commande.
+
+Exemples d'intentions :
+
+- aucun contexte actif : proposer `context set` ;
+- manifeste invalide : proposer `validate` et afficher les corrections ;
+- SSH indisponible : proposer les checks de connexion ;
+- derive detectee : proposer `plan`, `apply --dry-run`, puis `apply` ;
+- machine saine : proposer `doctor`, `drift` ou surveillance.
+
+Commande cible :
+
+```bash
+k3sctl smart
+k3sctl smart examples/single-server.yaml --inventory inventory.local.yaml
+```
+
+Le mode smart reste explicable : chaque proposition doit indiquer pourquoi elle
+est proposee, son niveau de risque, et la commande concrete equivalente.
 
 ## Contrats du moteur
 
