@@ -1,4 +1,7 @@
-# k3s
+# cluster-pilot
+
+[![DOI](https://zenodo.org/badge/1223607555.svg)](https://doi.org/10.5281/zenodo.19880066)
+[![Version](https://img.shields.io/github/v/release/univ-lehavre/cluster-pilot)](https://github.com/univ-lehavre/cluster-pilot/releases/latest)
 
 Outil declaratif experimental pour inspecter, planifier et reconciler l'etat k3s
 d'une machine distante.
