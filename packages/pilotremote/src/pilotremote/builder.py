@@ -39,6 +39,10 @@ def build_actions(
     return actions, skipped
 
 
+def build_action(action_id: str, desired: DesiredState, executor: RemoteExecutor) -> Action | None:
+    return _build_action(action_id, desired, executor)
+
+
 def _build_action(action_id: str, desired: DesiredState, executor: RemoteExecutor) -> Action | None:
     if action_id.startswith("package.present."):
         return EnsurePackagePresent(executor, action_id[len("package.present.") :])

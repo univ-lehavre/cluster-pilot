@@ -197,7 +197,7 @@ Definition of done :
 - ✅ une action echouee stoppe l'execution
 - ✅ les actions deja appliquees sont rollbackees si possible
 - ✅ `pilot journal list` liste les executions
-- ⬜ `pilot rollback --run-id <run-id>` fonctionne pour les actions rollbackables
+- ✅ `pilot rollback --run-id <run-id>` fonctionne pour les actions rollbackables
 
 Livrables :
 

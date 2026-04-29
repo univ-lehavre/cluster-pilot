@@ -9,7 +9,7 @@ from pilotplan.observed import ObservedState
 from pilotplan.planner import build_plan
 from pilotplan.runner import Runner
 from pilotremote import SshExecutor, inspect_machine
-from pilotremote.builder import build_actions
+from pilotremote.builder import build_action, build_actions
 from rich.console import Console
 from rich.table import Table
 from ruamel.yaml import YAML
@@ -143,6 +143,8 @@ def show_context() -> None:
 
 
 ManifestArgument = Annotated[Path | None, typer.Argument()]
+DEFAULT_JOURNAL_PATH = Path(".pilot/runs")
+JournalPathOption = Annotated[Path, typer.Option("--journal-path")]
 
 
 @app.command()
@@ -314,6 +316,64 @@ def apply(
         console.print(f"[green]OK[/] {result.applied} action(s) applied")
     else:
         console.print(f"[red]FAILED[/] {result.failed_action}: {result.error}")
+        raise typer.Exit(1)
+
+
+@app.command()
+def rollback(
+    manifest: ManifestArgument = None,
+    inventory: Path | None = None,
+    run_id: str = typer.Option(..., "--run-id", help="Run ID to roll back."),
+    journal_path: JournalPathOption = DEFAULT_JOURNAL_PATH,
+) -> None:
+    """Roll back committed actions from a past run."""
+    manifest, inventory = resolve_paths(manifest, inventory)
+    desired = load_manifest(manifest)
+    target, connection = resolve_manifest_connection(manifest, inventory)
+    executor = SshExecutor(connection, on_output=lambda line: console.print(f"  [dim]{line}[/]"))
+
+    journal = Journal(journal_path)
+    try:
+        run = journal.load_run(run_id)
+    except FileNotFoundError as exc:
+        console.print(f"[red]error[/] {exc}")
+        raise typer.Exit(1) from exc
+
+    reversible = [a for a in reversed(run.actions) if a.status == "committed"]
+
+    if not reversible:
+        console.print("[yellow]Nothing to roll back[/]")
+        return
+
+    table = Table(title=f"Rollback: {run_id}")
+    table.add_column("Action")
+    table.add_column("Mode")
+    for a in reversed(reversible):
+        action_obj = build_action(a.id, desired, executor)
+        mode = action_obj.rollback_mode if action_obj else "unknown"
+        table.add_row(a.description, mode)
+    console.print(table)
+
+    if not typer.confirm("Proceed with rollback?"):
+        raise typer.Abort()
+
+    errors: list[str] = []
+    for record in reversible:
+        action_obj = build_action(record.id, desired, executor)
+        if action_obj is None:
+            console.print(f"[yellow]skip[/] {record.id} (not implemented)")
+            continue
+        if action_obj.rollback_mode == "none":
+            console.print(f"[dim]skip[/] {record.id} (not reversible)")
+            continue
+        try:
+            action_obj.rollback(record.snapshot)
+            console.print(f"[green]OK[/] rolled back {record.description}")
+        except Exception as exc:
+            console.print(f"[red]FAILED[/] {record.description}: {exc}")
+            errors.append(record.id)
+
+    if errors:
         raise typer.Exit(1)
 
 
