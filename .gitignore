@@ -7,7 +7,11 @@
 __pycache__/
 inventory.local.yaml
 *.local.yaml
+.pilot.yaml
 .k3sp.yaml
+.k3sctl.yaml
 .claude/
+.pilot/
 .k3sp/
+.k3sctl/
 agents/pilotagent/pilotagent
