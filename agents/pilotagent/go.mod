@@ -1,3 +1,3 @@
-module github.com/univ-lehavre/k3s-pilot/agents/pilotagent
+module github.com/univ-lehavre/cluster-pilot/agents/pilotagent
 
 go 1.23
