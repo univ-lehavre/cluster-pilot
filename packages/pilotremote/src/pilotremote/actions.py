@@ -286,15 +286,18 @@ class WaitK3sNodeReady(Action):
         node_q = shlex.quote(self._node)
         deadline = time.monotonic() + self._timeout
         while time.monotonic() < deadline:
-            ready = self._executor.run(
-                f'k3s kubectl get node {node_q} --no-headers 2>/dev/null | grep -q " Ready "'
-            ).ok
-            if ready:
-                return
-            self._executor.run(
-                "journalctl -u k3s -n 5 --no-pager --output=cat 2>/dev/null || true",
-                stream=True,
+            node_status = self._executor.run(
+                f"k3s kubectl get node {node_q} --no-headers 2>/dev/null"
             )
+            if node_status.ok and "Ready" in node_status.stdout:
+                return
+            if node_status.ok and node_status.stdout.strip():
+                self._executor.run(f"echo 'node status: {node_status.stdout.strip()}'", stream=True)
+            else:
+                self._executor.run(
+                    "journalctl -u k3s -n 3 --no-pager --output=cat 2>/dev/null || true",
+                    stream=True,
+                )
             time.sleep(5)
         raise TimeoutError(f"k3s node {self._node!r} not ready after {self._timeout}s")
 
